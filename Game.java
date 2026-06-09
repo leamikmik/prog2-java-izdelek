@@ -116,18 +116,15 @@ public class Game extends JFrame implements KeyListener{
     public static void main(String[] args) throws Exception {
         Game game = new Game();
         game.setVisible(true);
-        int moveAmt = 5;
+
+        game.arena.player = new Player(game.arena.getWidth()/2, game.arena.getHeight()/2);
+
+        
         while (true) {
+            arena.update(moving);
+
             game.repaint();
             Thread.sleep(25);
-            if(moving[0] && game.arena.player.getX() + moveAmt < game.arena.getWidth() - (10 + game.arena.player.radius))
-                game.arena.player.moveX(moveAmt);
-            if(moving[1] && game.arena.player.getX() - moveAmt > 5 + game.arena.player.radius/2)
-                game.arena.player.moveX(-moveAmt);
-            if(moving[2] && game.arena.player.getY() + moveAmt < game.arena.getHeight() - (15 + game.arena.player.radius))
-                game.arena.player.moveY(moveAmt);
-            if(moving[3] && game.arena.player.getY() - moveAmt > 5 + game.arena.player.radius/2)
-                game.arena.player.moveY(-moveAmt);
         }
     }
 }
@@ -136,11 +133,15 @@ class Arena extends JPanel {
 
     static Player player = new Player(100, 100);
     private int width = 350;
+    private int moveAmt = 5;
+    List<RectHitbox> projectiles;
 
     public Arena(){
         super();
         setBackground(Color.BLACK);
         setPreferredSize(new Dimension(width, 0));
+        projectiles = new ArrayList<RectHitbox>();
+        projectiles.add(new Tear(100, 100, 30, 20));
     }
 
     @Override
@@ -151,15 +152,36 @@ class Arena extends JPanel {
         g2.setStroke(new BasicStroke(10));
         g2.drawRect(5, 5, this.getWidth()-10, this.getHeight()-10);
         player.paintComponent(g);
-    }
 
-    public int getWidth(){
-        return width;
+        for (RectHitbox cur : projectiles){
+            g2.setColor(Color.GREEN);
+            g2.fillRect(cur.getX(), cur.getY(), cur.width, cur.height);
+            g2.setColor(Color.WHITE);
+            g2.fillOval(cur.getX()-1, cur.getY()-1, 2, 2);
+        }
     }
 
     public void setWidth(int newD){
         this.width = newD;
         this.setPreferredSize(new Dimension(newD, 0));
+    }
+
+    public void update(boolean[] moving){
+
+        if(moving[0] && player.getX() + moveAmt + player.radius < getWidth() - 10)
+            player.moveX(moveAmt);
+        if(moving[1] && player.getX() - moveAmt > 10)
+            player.moveX(-moveAmt);
+        if(moving[2] && player.getY() + moveAmt + player.radius < getHeight() - 10)
+            player.moveY(moveAmt);
+        if(moving[3] && player.getY() - moveAmt > 10)
+            player.moveY(-moveAmt);
+
+        
+        for (RectHitbox cur : projectiles){
+            System.out.println(player.getX() > cur.getX() + cur.width || cur.getX() > player.getX() + player.radius || player.getY() > cur.getY() + cur.height || cur.getY() > player.getY() + player.radius);
+        }
+
     }
 
 }
@@ -170,26 +192,25 @@ class Menu extends JPanel {
         super();
         setBackground(Color.GREEN);
         //setPreferredSize(new Dimension(350, 300));
-
     }
 }
 
 class Player extends JComponent{
     private int x;
     private int y;
-    static int radius = 10;
+    static int radius = 20;
 
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
         g.setColor(Color.RED);
-        g.drawRect(x, y, radius, radius);
         g.fillRect(x, y, radius, radius);
-        g.setColor(Color.BLACK);
+        g.setColor(Color.WHITE);
+        g.fillOval(x-1, y-1, 2, 2);
     }
 
     public Player(int x, int y){
-        this.x = x - this.radius/2;
-        this.y = y - this.radius/2;
+        this.x = x;
+        this.y = y;
     }
 
     public int getX(){ return this.x; }
