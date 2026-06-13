@@ -86,7 +86,6 @@ public class Game extends JFrame implements KeyListener , PanelSizes{
         setTitle("Game");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(new Dimension(appWidth, appHeight));
-        setResizable(false);
         getContentPane().setBackground(Color.BLACK);
 
         Box paddingL = new Box(0);
@@ -146,12 +145,20 @@ public class Game extends JFrame implements KeyListener , PanelSizes{
         Menu.sprites[2][1] = ImageIO.read(new File("assets", "run_idle.png"));
         Menu.sprites[2][2] = ImageIO.read(new File("assets", "run_select.png"));
 
+        Menu.item_sprites[0][0] = ImageIO.read(new File("assets", "atk_up.png")); 
+        Menu.item_sprites[0][2] = ImageIO.read(new File("assets", "atk_up_select.png")); 
+        Menu.item_sprites[1][0] = ImageIO.read(new File("assets", "def_up.png")); 
+        Menu.item_sprites[1][2] = ImageIO.read(new File("assets", "def_up_select.png")); 
+        Menu.item_sprites[2][0] = ImageIO.read(new File("assets", "hp_up.png")); 
+        Menu.item_sprites[2][2] = ImageIO.read(new File("assets", "hp_up_select.png")); 
+
         Player.sprite = ImageIO.read(new File("assets", "player.png"));
     }
 
     public static void main(String[] args) throws Exception {
         Game game = new Game();
         game.setVisible(true);
+        
         
         while (true) {
             arena.update(moving);
@@ -276,7 +283,7 @@ class Menu extends JPanel implements PanelSizes {
 
     static BufferedImage[][] sprites = new BufferedImage[3][3];
 
-    static BufferedImage[][] item_sprites = new BufferedImage[3][2];
+    static BufferedImage[][] item_sprites = new BufferedImage[3][3];
 
 
 
@@ -288,12 +295,33 @@ class Menu extends JPanel implements PanelSizes {
     static public void select(){
         switch (selected){
             case 0:
-                Gamestate.enemyHealth -= 1;
+                if (Gamestate.selecting_item) {
+                    Gamestate.atk_dmg = 3;
+                    Gamestate.selecting_item = false;}
+                else {
+                    Gamestate.enemyHealth -= Gamestate.atk_dmg;
+                    Gamestate.atk_dmg = 1;
+                }
                 Gamestate.inCombat = true;
                 break;
+            case 1:
+                if (Gamestate.selecting_item) {
+                    Gamestate.shield = 5;
+                    Gamestate.selecting_item = false;
+                    Gamestate.inCombat = true;
+                }
+                else {Gamestate.selecting_item = true;}
+                break;
             case 2:
-                if(Math.random() <= 0.1 * (Gamestate.enemyMaxHealth - Gamestate.enemyHealth))
-                    Gamestate.enemyHealth = 0;
+                if (Gamestate.selecting_item) {
+                    if (Gamestate.playerHealth + 2 > 10) {Gamestate.playerHealth = 10;}
+                    else {Gamestate.playerHealth += 2;}
+                    Gamestate.selecting_item = false;
+                }
+                else {
+                    if(Math.random() <= 0.1 * (Gamestate.enemyMaxHealth - Gamestate.enemyHealth))
+                        Gamestate.enemyHealth = 0;
+                    }
                 Gamestate.inCombat = true;
                 break;
         }
@@ -319,9 +347,13 @@ class Menu extends JPanel implements PanelSizes {
             else phase = 0;
             x = getWidth()/2 + (int)(buttonWidth*(i - 3/2.0)) + buttonMargin*(i-1);
             y = healthBarHeight + 20;
-            g.drawImage(sprites[i][phase], x, y, x+buttonWidth, y+buttonHeight, 0, 0, sprites[i][phase].getWidth(), sprites[i][phase].getHeight(), null);
+            if (!Gamestate.selecting_item) {
+                g.drawImage(sprites[i][phase], x, y, x+buttonWidth, y+buttonHeight, 0, 0, sprites[i][phase].getWidth(), sprites[i][phase].getHeight(), null);
+            }
+            else {
+                g.drawImage(item_sprites[i][phase], x, y, x+buttonWidth, y+buttonHeight, 0, 0, item_sprites[i][phase].getWidth(), item_sprites[i][phase].getHeight(), null);
+            }
         }
-
     }
 
 }
@@ -353,6 +385,7 @@ class Player extends JComponent{
     }
 
     public void takeDamage(){
-        Gamestate.playerHealth -= 1;
+        if (Gamestate.shield <= 0) {Gamestate.playerHealth -= 1;}
+        else {Gamestate.shield -= 1;}
     }
 }
