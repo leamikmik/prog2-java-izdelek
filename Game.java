@@ -8,6 +8,7 @@ import java.awt.Insets;
 import javax.swing.JPanel;
 import javax.swing.JLabel;
 import javax.swing.JComponent;
+import javax.swing.border.EmptyBorder;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.Color;
@@ -56,7 +57,7 @@ public class Game extends JFrame implements KeyListener , PanelSizes{
             moving[2] = false;
         else if(e.getKeyCode()== KeyEvent.VK_UP)
             moving[3] = false;
-        else if(e.getKeyCode()== KeyEvent.VK_SPACE && !Gamestate.inCombat)
+        else if(e.getKeyCode()== KeyEvent.VK_SPACE && !Gamestate.inCombat && Gamestate.playerHealth > 0)
             Menu.select();
     }
 
@@ -130,10 +131,22 @@ public class Game extends JFrame implements KeyListener , PanelSizes{
         add(menu, c);
 
 
-        Tear.sprite = ImageIO.read(new File("tear.png"));
-        EnemyPanel.sprite = ImageIO.read(new File("enemy.png"));
-        EnemyPanel.sprite_idle = ImageIO.read(new File("enemy_idle.png"));
-        EnemyPanel.sprite_dead = ImageIO.read(new File("enemy_dead.png"));
+        Tear.sprite = ImageIO.read(new File("assets", "tear.png"));
+        EnemyPanel.sprites[0] = ImageIO.read(new File("assets", "enemy.png"));
+        EnemyPanel.sprites[2] = ImageIO.read(new File("assets", "enemy_idle.png"));
+        EnemyPanel.sprites[1] = ImageIO.read(new File("assets", "enemy_dead.png"));
+
+        Menu.sprites[0][0] = ImageIO.read(new File("assets", "atk.png")); 
+        Menu.sprites[0][1] = ImageIO.read(new File("assets", "atk_idle.png"));
+        Menu.sprites[0][2] = ImageIO.read(new File("assets", "atk_select.png"));
+        Menu.sprites[1][0] = ImageIO.read(new File("assets", "use.png")); 
+        Menu.sprites[1][1] = ImageIO.read(new File("assets", "use_idle.png"));
+        Menu.sprites[1][2] = ImageIO.read(new File("assets", "use_select.png"));
+        Menu.sprites[2][0] = ImageIO.read(new File("assets", "run.png")); 
+        Menu.sprites[2][1] = ImageIO.read(new File("assets", "run_idle.png"));
+        Menu.sprites[2][2] = ImageIO.read(new File("assets", "run_select.png"));
+
+        Player.sprite = ImageIO.read(new File("assets", "player.png"));
     }
 
     public static void main(String[] args) throws Exception {
@@ -151,9 +164,7 @@ public class Game extends JFrame implements KeyListener , PanelSizes{
 
 class EnemyPanel extends JPanel implements PanelSizes {
 
-    static BufferedImage sprite;
-    static BufferedImage sprite_idle;
-    static BufferedImage sprite_dead;
+    static BufferedImage[] sprites = new BufferedImage[3];
     
     EnemyPanel(){
         super();
@@ -172,11 +183,11 @@ class EnemyPanel extends JPanel implements PanelSizes {
         g2.fillRect(this.getWidth()/2 - healthBarWidth/2, 10, (int)(healthBarWidth * Gamestate.enemyHealth / Gamestate.enemyMaxHealth), healthBarHeight);
 
         if(Gamestate.inCombat)
-            g.drawImage(sprite, this.getWidth()/2 - sprite.getWidth()/2, healthBarHeight + 40, null);
+            g.drawImage(sprites[0], this.getWidth()/2 - sprites[0].getWidth()/2, healthBarHeight + 40, null);
         else if(Gamestate.enemyHealth <= 0) 
-            g.drawImage(sprite_dead, this.getWidth()/2 - sprite.getWidth()/2, healthBarHeight + 40, null);
+            g.drawImage(sprites[1], this.getWidth()/2 - sprites[0].getWidth()/2, healthBarHeight + 40, null);
         else 
-            g.drawImage(sprite_idle, this.getWidth()/2 - sprite.getWidth()/2, healthBarHeight + 40, null);
+            g.drawImage(sprites[2], this.getWidth()/2 - sprites[0].getWidth()/2, healthBarHeight + 40, null);
 
     }
 
@@ -187,16 +198,24 @@ class Arena extends JPanel implements PanelSizes {
     static Player player = new Player();
     private int moveAmt = 5;
     static Enemy enemy = new Enemy();
-    static JLabel text = new JLabel();
+    static JLabel text = new JLabel(){
+        @Override
+        public void paintComponent(Graphics g){
+            if(!Gamestate.inCombat) super.paintComponent(g);
+        }
+    };
 
     public Arena(){
         super();
         setBackground(Color.BLACK);
         setPreferredSize(new Dimension(arenaWidth, 0));
+        setBorder(new EmptyBorder(arenaBorder, arenaBorder, arenaBorder, arenaBorder));
         player.setX(arenaWidth/2 - player.radius/2);
         player.setY(arenaHeight/2 - player.radius/2);
 
-
+        text.setForeground(Color.WHITE);
+        text.setFont(text.getFont().deriveFont(20f));
+        this.add(text);
     }
 
     @Override
@@ -213,9 +232,11 @@ class Arena extends JPanel implements PanelSizes {
 
         if(!Gamestate.inCombat)
             if(Gamestate.playerHealth <= 0){
+                text.setText("You lost!");
 
             }
             else if(Gamestate.enemyHealth <= 0){
+                text.setText("You won!");
 
             }
 
@@ -253,6 +274,12 @@ class Menu extends JPanel implements PanelSizes {
     static int buttonBorder = 6;
     static int buttonMargin = 60;
 
+    static BufferedImage[][] sprites = new BufferedImage[3][3];
+
+    static BufferedImage[][] item_sprites = new BufferedImage[3][2];
+
+
+
     public Menu(){
         super();
         setBackground(Color.BLACK);
@@ -263,6 +290,12 @@ class Menu extends JPanel implements PanelSizes {
             case 0:
                 Gamestate.enemyHealth -= 1;
                 Gamestate.inCombat = true;
+                break;
+            case 2:
+                if(Math.random() <= 0.1 * (Gamestate.enemyMaxHealth - Gamestate.enemyHealth))
+                    Gamestate.enemyHealth = 0;
+                Gamestate.inCombat = true;
+                break;
         }
     }
 
@@ -277,13 +310,16 @@ class Menu extends JPanel implements PanelSizes {
         g2.setColor(Color.GREEN);
         g2.fillRect(this.getWidth()/2 - healthBarWidth/2, 0, (int)(healthBarWidth * Gamestate.playerHealth / Gamestate.playerMaxHealth), healthBarHeight);
 
-        g2.setStroke(new BasicStroke(buttonBorder));
-
+        int phase = 0;
+        int x = 0;
+        int y = 0;
         for(int i = 0; i < 3; i++){
-            if (selected == i && !Gamestate.inCombat) g2.setColor(Color.YELLOW);
-            else if (Gamestate.inCombat) g2.setColor(Color.GRAY);
-            else g2.setColor(Color.WHITE);
-            g2.drawRect(getWidth()/2 + (int)(buttonWidth*(i - 3/2.0)) + buttonMargin*(i-1), healthBarHeight + 20, buttonWidth - buttonBorder/2, buttonHeight - buttonBorder/2);
+            if (Gamestate.inCombat || Gamestate.enemyHealth <= 0 || Gamestate.playerHealth <= 0) phase = 1;
+            else if (selected == i && !Gamestate.inCombat) phase = 2;
+            else phase = 0;
+            x = getWidth()/2 + (int)(buttonWidth*(i - 3/2.0)) + buttonMargin*(i-1);
+            y = healthBarHeight + 20;
+            g.drawImage(sprites[i][phase], x, y, x+buttonWidth, y+buttonHeight, 0, 0, sprites[i][phase].getWidth(), sprites[i][phase].getHeight(), null);
         }
 
     }
@@ -294,14 +330,12 @@ class Player extends JComponent{
     private int x;
     private int y;
     static int radius = 20;
+    static BufferedImage sprite;
 
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
         if (Gamestate.inCombat){
-            g.setColor(Color.RED);
-            g.fillRect(x, y, radius, radius);
-            g.setColor(Color.WHITE);
-            g.fillOval(x-1, y-1, 2, 2);
+            g.drawImage(sprite, x, y, x+radius, y+radius, 0, 0, sprite.getWidth(), sprite.getHeight(), null);
         }
     }
 
